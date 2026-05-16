@@ -2,8 +2,6 @@
 #SBATCH -J datasets
 #SBATCH -N 1
 #SBATCH -c 1
-#SBATCH --array=1-8%2
-#SBATCH --output=%x_%a_%A.out
 
 echo "START"
 date
@@ -14,20 +12,18 @@ cd $MYPATH/CMSC701/CMSC701_final
 
 sleep $(( (RANDOM % 5 + 1) * 60 ))
 
-FILE=$SLURM_ARRAY_TASK_ID
-
 echo "BEGIN DOWNLOAD"
-datasets download genome accession --dehydrated --inputfile mydataset_${FILE}.txt --filename batch_${FILE}.zip
+datasets download genome accession --dehydrated --inputfile refseq_accessions.txt --filename refseq.zip
 
 echo "BEGIN UNZIP"
-unzip batch_${FILE}.zip -d batch${FILE}
+unzip refseq.zip -d refseq
 
 echo "REHYDRATE"
-datasets rehydrate --directory batch${FILE}
+datasets rehydrate --directory refseq
 
 echo "CHECK MD5"
-cd batch${FILE}
-md5sum -c md5sum.txt > ../checks${FILE}.out
+cd refseq
+md5sum -c md5sum.txt > ../checks_refseq.out
 
 echo "END"
 date
