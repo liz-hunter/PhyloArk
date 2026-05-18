@@ -99,7 +99,7 @@ remove_organellar_genomes <- function(df_annotated) {
 remove_duplicates <- function(df_annotated) {
   picked <- df_annotated %>%
     group_by(pair_key) %>%
-    arrange(desc(is_refseq), assembly_accession) %>%  # stable tie-break
+    arrange(desc(is_refseq), assembly_accession) %>%  # tie-breaker
     mutate(.rank = row_number()) %>%
     ungroup()
 
@@ -161,7 +161,7 @@ cleanup_summary <- function(df_input,
   invisible(NULL)
 }
 
-# End-to-end cleanup, outputs a nice formatted final table
+# Make a nice output table
 clean_assembly_list <- function(infile,
                                 warn_organellar = TRUE,
                                 remove_organellar = FALSE,

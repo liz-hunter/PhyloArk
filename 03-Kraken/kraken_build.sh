@@ -10,7 +10,7 @@ echo "START"
 date
 
 # 1Tb memory available with 50G for overhead
-kraken2-build --threads 20 --build --max-db-size 1020054732800 --db $MYPATH/CMSC701/CMSC701_final/taxonomy_db
+kraken2-build --threads 20 --build --max-db-size 1020054732800 --db taxonomy_db
 
 echo "END"
 date

@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Taxonomy-aware quota sampler for PhyloArk-style downsampling.
+PhyloArk: Taxonomy-aware downsampling
 
-Selects a target number of genomes while preserving the descendant-count
-structure of an induced NCBI taxonomy tree. Within terminal/direct bins, genomes
-are ranked by CheckM-style quality score:
-
-    score = completeness - contam_weight * contamination
+Selects a target number of genomes while preserving the descendant count
+structure of an induced NCBI taxonomy tree. Within terminal bins, genomes
+are ranked using a CheckM derived quality score.
 
 Inputs:
-  - genome metadata table with accession and taxid columns
-  - NCBI taxdump directory containing nodes.dmp, names.dmp, optionally merged.dmp
+  - metadata table with accession and taxid columns
+  - NCBI taxdump directory containing nodes.dmp, names.dmp, merged.dmp
 
 Outputs:
   - <out_prefix>.selected.tsv
@@ -45,7 +43,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--root-taxid",
         default=None,
-        help="Optional root taxid to use as the top of the induced tree. Genomes outside this root are skipped.",
+        help="Root taxid to use as the top of the induced tree. Genomes outside this root are skipped. (OPTIONAL)",
     )
     parser.add_argument("--out-prefix", default="phyloark_stability_sample", help="Output file prefix.")
     parser.add_argument("--delimiter", default="\t", help="Input/output delimiter. Default: tab.")
@@ -54,15 +52,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--score-col",
         default=None,
-        help="Optional precomputed quality score column. If omitted, score is computed from completeness and contamination.",
+        help="Precomputed quality score column ranking genomes. Default score is computed from CheckM completeness and contamination if none is provided. (OPTIONAL)",
     )
-    parser.add_argument("--complete-col", default="checkM_complete", help="CheckM completeness column name.")
-    parser.add_argument("--contam-col", default="checkM_contam", help="CheckM contamination column name.")
+    parser.add_argument("--complete-col", default="checkM_complete", help="CheckM completeness col name.")
+    parser.add_argument("--contam-col", default="checkM_contam", help="CheckM contamination col name.")
     parser.add_argument(
         "--contam-weight",
         type=float,
         default=5.0,
-        help="Penalty multiplier for contamination when computing score. Default: 5.",
+        help="Penalty multiplier for contamination when computing CheckM quality score. Default: 5.",
     )
     parser.add_argument(
         "--alpha",
@@ -73,7 +71,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--no-min-one",
         action="store_true",
-        help="Do not force one genome per nonempty child/direct bin when local budget allows it.",
+        help="Do not force one genome per child bin when local budget allows it.",
     )
     parser.add_argument(
         "--rank-keep",
@@ -87,7 +85,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--include-lineage-names",
         action="store_true",
-        help="Include lineage names in the selected output. This can make the output wider but easier to inspect.",
+        help="Include lineage names in the selected output.",
     )
     return parser.parse_args()
 
@@ -267,7 +265,6 @@ def safe_score(row: Dict[str, str], args: argparse.Namespace) -> Tuple[float, fl
     completeness = parse_float(row.get(args.complete_col))
     contamination = parse_float(row.get(args.contam_col))
     if contamination is None:
-        # Liz's table encodes zero contamination as NA, so default to zero here.
         contamination = 0.0
 
     if args.score_col:
@@ -324,11 +321,7 @@ def allocate_budget(
                 alloc[key] = 1
                 remaining -= 1
 
-    # Largest-remainder allocation with capacity caps. At each pass, assign
-    # floors from the ideal fractional quotas, then distribute the remaining
-    # units by largest fractional remainder. Recompute only if capacity caps
-    # prevented all remaining units from being placed.
-    while remaining > 0:
+    # Largest-remainder allocation with capacity caps
         available = [(key, cap, count) for key, cap, count in clean_items if alloc[key] < cap]
         if not available:
             break
